@@ -50,7 +50,7 @@ function Home() {
           zIndex: 10
         }}
       >
-        {["Home","About Us","Contact Us","Registration","Sign In",].map(label => (
+        {["Home","About Us","Contact Us","Carrer","Registration","Sign In",].map(label => (
           <button
             key={label}
             style={{
