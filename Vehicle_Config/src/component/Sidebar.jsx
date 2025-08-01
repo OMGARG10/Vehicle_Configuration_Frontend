@@ -7,7 +7,7 @@ const Sidebar = () => {
   const menuItems = [
     { label: '🏠 Home', path: '/' },
     { label: 'ℹ️ About Us', path: '/about' },
-    { label: '📞 Contact Us', path: '/contact' },    
+    { label: '📞 Contact Us', path: '/contact' },
     { label: '❓ Help', path: '/help' },
     { label: '📝 Feedback', path: '/feedback' },
     { label: '🔐 Sign In/Out', path: '/signin' }
@@ -33,11 +33,12 @@ const Sidebar = () => {
         onMouseLeave={() => setCollapsed(true)}
         style={{
           position: 'fixed',
-          top: 120,
+          top: 124,
           left: collapsed ? '-200px' : '0',
           height: '100vh',
           width: '200px',
-          backgroundColor: '#222',
+          backgroundColor: 'rgba(34, 34, 34, 0.6)', // translucent dark
+          backdropFilter: 'blur(8px)', // frosted glass effect
           color: '#fff',
           transition: 'left 0.3s ease',
           paddingTop: '60px',

@@ -1,13 +1,21 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom"; // 👈 Import navigation hook
 
 function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate(); // 👈 Initialize navigation
 
   const handleSignIn = (e) => {
     e.preventDefault();
-    // You could later plug in authentication logic here
-    alert(`Signed in as ${email}`);
+
+    // Simulated authentication logic
+    if (email && password) {
+      alert(`Signed in as ${email}`);
+      navigate("/welcome"); // 👈 Redirect to Welcome Page
+    } else {
+      alert("Please enter valid credentials.");
+    }
   };
 
   return (
