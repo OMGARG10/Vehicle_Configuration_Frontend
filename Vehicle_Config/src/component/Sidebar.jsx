@@ -7,10 +7,10 @@ const Sidebar = () => {
   const menuItems = [
     { label: '🏠 Home', path: '/' },
     { label: 'ℹ️ About Us', path: '/about' },
-    { label: '📞 Contact Us', path: '/contact' },
-    { label: '🔐 Sign In/Out', path: '/auth' },
+    { label: '📞 Contact Us', path: '/contact' },    
     { label: '❓ Help', path: '/help' },
     { label: '📝 Feedback', path: '/feedback' },
+    { label: '🔐 Sign In/Out', path: '/signin' }
   ];
 
   return (
@@ -24,7 +24,7 @@ const Sidebar = () => {
           left: 0,
           width: '10px',
           height: '100vh',
-          zIndex: 998,
+          zIndex: 999,
         }}
       />
 
@@ -33,7 +33,7 @@ const Sidebar = () => {
         onMouseLeave={() => setCollapsed(true)}
         style={{
           position: 'fixed',
-          top: 0,
+          top: 120,
           left: collapsed ? '-200px' : '0',
           height: '100vh',
           width: '200px',
@@ -42,7 +42,7 @@ const Sidebar = () => {
           transition: 'left 0.3s ease',
           paddingTop: '60px',
           boxShadow: collapsed ? 'none' : '2px 0 10px rgba(0,0,0,0.5)',
-          zIndex: 999,
+          zIndex: 1999,
         }}
       >
         <ul style={{ listStyle: 'none', padding: '20px', margin: 0 }}>
