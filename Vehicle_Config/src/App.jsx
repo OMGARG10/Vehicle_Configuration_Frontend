@@ -5,7 +5,9 @@ import SignIn from "./pages/SignIn";
 import RegistrationForm from './pages/Registration';
 import WelcomePage from './pages/WelcomePage';
 import DefaultConfigurationPage from './pages/DefaultConfigurationPage';
-// import About from './pages/About';
+import ConfigurePage from './pages/ConfigurePage';
+import InvoicePage from './pages/InvoicePage';
+import AboutUs from './pages/AboutUs';
 
 function App() {
   return (
@@ -17,6 +19,8 @@ function App() {
           <Route path="/register" element={<RegistrationForm />} />
           <Route path="/welcome" element={<WelcomePage />} />
           <Route path="/configuration" element={<DefaultConfigurationPage />} />
+          <Route path="/configure" element={<ConfigurePage/>}/>
+          <Route path="/about" element={<AboutUs/>}/>
         </Routes>
       </Layout>
     </Router>
