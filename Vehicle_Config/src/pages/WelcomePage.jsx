@@ -1,77 +1,109 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-// Sample data for manufacturers and models
-const vehicleData = {
-  "Small Car": {
-    manufacturers: {
-      Maruti: ["Alto", "WagonR"],
-      Hyundai: ["Santro", "i10"]
-    },
-    minQty: 8
-  },
-  "Compact Car": {
-    manufacturers: {
-      Tata: ["Punch", "Tiago"],
-      Renault: ["Kwid", "Triber"]
-    },
-    minQty: 6
-  },
-  Sedan: {
-    manufacturers: {
-      Honda: ["City", "Amaze"],
-      Skoda: ["Slavia", "Octavia"]
-    },
-    minQty: 5
-  },
-  SUVs: {
-    manufacturers: {
-      Mahindra: ["XUV700", "Scorpio"],
-      Hyundai: ["Creta", "Venue"]
-    },
-    minQty: 3
-  },
-  "Luxury Car": {
-    manufacturers: {
-      BMW: ["X5", "3 Series"],
-      Audi: ["Q7", "A6"]
-    },
-    minQty: 2
-  }
-};
-
 function WelcomePage() {
   const navigate = useNavigate();
   const isAuthorized = true;
 
-  const [segment, setSegment] = useState("");
-  const [manufacturer, setManufacturer] = useState("");
-  const [model, setModel] = useState("");
+  const [segments, setSegments] = useState([]);
+  const [segId, setSegmentId] = useState("");
+
+  const [manufacturers, setManufacturers] = useState([]);
+  const [mfgId, setManufacturerId] = useState("");
+
+  const [models, setModels] = useState([]);
+  const [modelId, setModelId] = useState("");
+
   const [quantity, setQuantity] = useState("");
+  const [minQty, setMinQty] = useState(1); // new state to track minimum
 
-  const [availableManufacturers, setAvailableManufacturers] = useState([]);
-  const [availableModels, setAvailableModels] = useState([]);
-  const [minQty, setMinQty] = useState(0);
-
+  // Fetch segments on mount
   useEffect(() => {
-    if (segment) {
-      const data = vehicleData[segment];
-      setAvailableManufacturers(Object.keys(data.manufacturers));
-      setManufacturer("");
-      setModel("");
-      setAvailableModels([]);
-      setMinQty(data.minQty);
-      setQuantity(data.minQty);
-    }
-  }, [segment]);
+    const fetchSegments = async () => {
+      try {
+        const res = await fetch("http://localhost:8080/segments");
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
+        setSegments(data);
+      } catch (error) {
+        console.error("Failed to fetch segments:", error);
+      }
+    };
+    fetchSegments();
+  }, []);
 
+  // Fetch manufacturers when segment changes
   useEffect(() => {
-    if (segment && manufacturer) {
-      const models = vehicleData[segment].manufacturers[manufacturer];
-      setAvailableModels(models);
-      setModel("");
+    if (!segId) {
+      setManufacturers([]);
+      setManufacturerId("");
+      setModels([]);
+      setModelId("");
+      return;
     }
-  }, [manufacturer]);
+
+    fetch(`http://localhost:8080/manufacturers/by-segment/${segId}`)
+      .then(res => {
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        setManufacturers(data);
+      })
+      .catch(err => {
+        console.error("Failed to fetch manufacturers:", err);
+        setManufacturers([]);
+      });
+  }, [segId]);
+
+  // Fetch models when manufacturer or segment changes
+  useEffect(() => {
+    if (!mfgId || !segId) {
+      setModels([]);
+      setModelId("");
+      return;
+    }
+
+    fetch(`http://localhost:8080/models/by-segment/${segId}/manufacturer/${mfgId}`)
+      .then(res => {
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        setModels(data);
+        setModelId("");
+      })
+      .catch(err => {
+        console.error("Error fetching models:", err);
+        setModels([]);
+        setModelId("");
+      });
+  }, [mfgId, segId]);
+
+  // Handle model selection change
+  const handleModelChange = (e) => {
+    const selectedId = e.target.value;
+    setModelId(selectedId);
+
+    const selectedModel = models.find(mdl => String(mdl.modelId) === selectedId);
+    if (selectedModel) {
+      setMinQty(selectedModel.minQty);
+      setQuantity(selectedModel.minQty);
+    } else {
+      setMinQty(1);
+      setQuantity("");
+    }
+  };
+
+  // Handle quantity input with validation
+  const handleQuantityChange = (e) => {
+    const enteredQty = parseInt(e.target.value, 10);
+    if (enteredQty >= minQty) {
+      setQuantity(enteredQty);
+    } else {
+      alert(`Quantity cannot be less than minimum required: ${minQty}`);
+    }
+  };
 
   if (!isAuthorized) {
     return <h2 style={{ textAlign: "center", marginTop: "5rem" }}>Access Denied</h2>;
@@ -107,60 +139,59 @@ function WelcomePage() {
           maxWidth: "600px"
         }}
       >
-        <select value={segment} onChange={(e) => setSegment(e.target.value)} style={inputStyle}>
+        <select value={segId} onChange={(e) => setSegmentId(e.target.value)} style={inputStyle}>
           <option value="">-- Select Vehicle Segment --</option>
-          {Object.keys(vehicleData).map((seg) => (
-            <option key={seg} value={seg}>{seg}</option>
+          {segments.map((seg) => (
+            <option key={seg.segId} value={seg.segId}>{seg.segName}</option>
           ))}
         </select>
 
         <select
-          value={manufacturer}
-          onChange={(e) => setManufacturer(e.target.value)}
-          disabled={!segment}
+          value={mfgId}
+          onChange={(e) => setManufacturerId(e.target.value)}
+          disabled={!segId}
           style={inputStyle}
         >
           <option value="">-- Select Manufacturer --</option>
-          {availableManufacturers.map((mfr) => (
-            <option key={mfr} value={mfr}>{mfr}</option>
+          {Array.isArray(manufacturers) && manufacturers.map(m => (
+            <option key={m.mfgId} value={m.mfgId}>{m.mfgName}</option>
           ))}
         </select>
 
         <select
-          value={model}
-          onChange={(e) => setModel(e.target.value)}
-          disabled={!manufacturer}
+          value={modelId}
+          onChange={handleModelChange}
+          disabled={!mfgId}
           style={inputStyle}
         >
           <option value="">-- Select Model --</option>
-          {availableModels.map((mdl) => (
-            <option key={mdl} value={mdl}>{mdl}</option>
+          {models.map((mdl) => (
+            <option key={mdl.modelId} value={mdl.modelId}>{mdl.modelName}</option>
           ))}
         </select>
 
         <input
           type="number"
           value={quantity}
-          onChange={(e) => setQuantity(Number(e.target.value))}
-          placeholder={`Minimum Quantity: ${minQty}`}
+          onChange={handleQuantityChange}
+          placeholder={`Min quantity: ${minQty}`}
           style={inputStyle}
           min={minQty}
         />
 
         <button
           onClick={() => {
-            if (quantity < minQty) {
-              alert(`Minimum quantity for ${segment} is ${minQty}`);
+            if (!segId || !mfgId || !modelId) {
+              alert("Please select segment, manufacturer and model.");
+              return;
+            }
+            if (!quantity || quantity < minQty) {
+              alert(`Quantity must be at least ${minQty}`);
               return;
             }
 
             navigate("/configuration", {
-              state: {
-                segment,
-                manufacturer,
-                model,
-                quantity
-              }
+              state: { segId, mfgId, modelId, quantity: Number(quantity) }
             });
           }}
           style={{

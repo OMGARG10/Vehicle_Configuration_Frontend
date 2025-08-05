@@ -1,45 +1,50 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 function DefaultConfigurationPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { modelId } = location.state || {};
 
-  // Sample default configuration (can be dynamic later)
-  const defaultConfig = {
-    segment: "SUVs",
-    manufacturer: "Mahindra",
-    model: "XUV700",
-    engine: "2.0L Turbo Petrol",
-    transmission: "Automatic",
-    color: "Midnight Black",
-    price: "₹22,50,000"
-  };
+  const [modelInfo, setModelInfo] = useState(null);
 
-  const handleConfirm = () => {
-    navigate("/invoice");
-  };
+  useEffect(() => {
+    if (!modelId) return;
 
-  const handleConfigure = () => {
-    navigate("/configure");
-  };
+    fetch(`http://localhost:8080/models/default/${modelId}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        console.log("Fetched default config:", data);
+        setModelInfo(data);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch default configuration:", err);
+        setModelInfo(null);
+      });
+  }, [modelId]);
 
-  const handleModify = () => {
-    navigate("/welcome");
-  };
+  const handleConfirm = () => navigate("/invoice");
+const handleConfigure = () => navigate("/configure", { state: { modelId: modelInfo.modelId } });  
+const handleModify = () => navigate("/welcome");
+
 
   return (
     <div
       style={{
-        height: "100vh",
+        minHeight: "100vh",
         width: "100vw",
         display: "flex",
         flexDirection: "column",
-        justifyContent: "center",
         alignItems: "center",
         background: "linear-gradient(to right, #1e3c72, #2a5298)",
         color: "#fff",
         fontFamily: "Arial, sans-serif",
-        padding: "1rem"
+        padding: "2rem",
+        overflowY: "auto",
+        position: "relative",
       }}
     >
       <h1 style={{ marginBottom: "1rem" }}>Default Configuration</h1>
@@ -50,42 +55,84 @@ function DefaultConfigurationPage() {
           padding: "2rem",
           borderRadius: "8px",
           width: "100%",
-          maxWidth: "600px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "1rem"
+          maxWidth: "800px",
+          position: "relative",
         }}
       >
-        {Object.entries(defaultConfig).map(([key, value]) => (
-          <div key={key} style={{ fontSize: "1rem" }}>
-            <strong>{key.charAt(0).toUpperCase() + key.slice(1)}:</strong> {value}
-          </div>
-        ))}
+        {modelInfo && modelInfo.imagePath && (
+          <img
+            src={`http://localhost:8080${modelInfo.imagePath}`}
+            alt={modelInfo.modelName}
+            style={{
+              width: "150px",
+              borderRadius: "8px",
+              position: "absolute",
+              top: "2rem",
+              right: "2rem",
+              boxShadow: "0 0 10px rgba(0,0,0,0.5)",
+              backgroundColor: "#fff",
+            }}
+          />
+        )}
 
-        <div style={{ display: "flex", justifyContent: "center", gap: "1rem", marginTop: "1rem" }}>
-          <button
-            onClick={handleConfirm}
-            style={buttonStyle}
-          >
-            Confirm Order
-          </button>
-          <button
-            onClick={handleConfigure}
-            style={buttonStyle}
-          >
-            Configure
-          </button>
-          <button
-            onClick={handleModify}
-            style={buttonStyle}
-          >
-            Modify Selection
-          </button>
+        {modelInfo ? (
+          <>
+            <div><strong>Segment:</strong> {modelInfo.segment?.segName}</div>
+            <div><strong>Manufacturer:</strong> {modelInfo.manufacturer?.mfgName}</div>
+            <div><strong>Model:</strong> {modelInfo.modelName}</div>
+            <div><strong>Minimum Quantity:</strong> {modelInfo.minQty}</div>
+            <div><strong>Price:</strong> ₹{modelInfo.price}</div>
+
+            <hr style={{ borderColor: "#fff", margin: "1rem 0" }} />
+
+            <h3>Default Components</h3>
+            {modelInfo.defaultComponents && modelInfo.defaultComponents.length > 0 ? (
+              <table style={{ width: "100%", borderCollapse: "collapse", color: "#fff" }}>
+                <thead>
+                  <tr>
+                    <th style={tableHeaderStyle}>Component Name</th>
+                    <th style={tableHeaderStyle}>Component Type</th>
+                    <th style={tableHeaderStyle}>Is Configurable</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {modelInfo.defaultComponents.map((comp) => (
+                    <tr key={comp.configId}>
+                      <td style={tableCellStyle}>{comp.component?.compName || "Unknown"}</td>
+                      <td style={tableCellStyle}>{comp.compType}</td>
+                      <td style={tableCellStyle}>{comp.isConfigurable}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p>No default components found for this model.</p>
+            )}
+          </>
+        ) : (
+          <p>Loading or no data found.</p>
+        )}
+
+        <div style={{ display: "flex", justifyContent: "center", gap: "1rem", marginTop: "1.5rem" }}>
+          <button onClick={handleConfirm} style={buttonStyle}>Confirm Order</button>
+          <button onClick={handleConfigure} style={buttonStyle}>Configure</button>
+          <button onClick={handleModify} style={buttonStyle}>Modify Selection</button>
         </div>
       </div>
     </div>
   );
 }
+
+const tableHeaderStyle = {
+  borderBottom: "1px solid #fff",
+  padding: "0.5rem",
+  textAlign: "left",
+};
+
+const tableCellStyle = {
+  padding: "0.5rem",
+  borderBottom: "1px solid rgba(255,255,255,0.3)",
+};
 
 const buttonStyle = {
   padding: "0.8rem 1.2rem",
@@ -94,7 +141,7 @@ const buttonStyle = {
   fontWeight: "bold",
   backgroundColor: "#fff",
   color: "#2a5298",
-  cursor: "pointer"
+  cursor: "pointer",
 };
 
 export default DefaultConfigurationPage;
