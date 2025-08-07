@@ -15,9 +15,10 @@ function WelcomePage() {
   const [modelId, setModelId] = useState("");
 
   const [quantity, setQuantity] = useState("");
-  const [minQty, setMinQty] = useState(1); // new state to track minimum
+  const [minQty, setMinQty] = useState(1);
 
-  // Fetch segments on mount
+  const userId = sessionStorage.getItem("userId");
+
   useEffect(() => {
     const fetchSegments = async () => {
       try {
@@ -32,7 +33,6 @@ function WelcomePage() {
     fetchSegments();
   }, []);
 
-  // Fetch manufacturers when segment changes
   useEffect(() => {
     if (!segId) {
       setManufacturers([]);
@@ -56,7 +56,6 @@ function WelcomePage() {
       });
   }, [segId]);
 
-  // Fetch models when manufacturer or segment changes
   useEffect(() => {
     if (!mfgId || !segId) {
       setModels([]);
@@ -80,7 +79,6 @@ function WelcomePage() {
       });
   }, [mfgId, segId]);
 
-  // Handle model selection change
   const handleModelChange = (e) => {
     const selectedId = e.target.value;
     setModelId(selectedId);
@@ -95,7 +93,6 @@ function WelcomePage() {
     }
   };
 
-  // Handle quantity input with validation
   const handleQuantityChange = (e) => {
     const enteredQty = parseInt(e.target.value, 10);
     if (enteredQty >= minQty) {
@@ -110,35 +107,10 @@ function WelcomePage() {
   }
 
   return (
-    <div
-      style={{
-        height: "100vh",
-        width: "100vw",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
-        background: "linear-gradient(to right, #1e3c72, #2a5298)",
-        color: "#fff",
-        fontFamily: "Arial, sans-serif",
-        padding: "1rem",
-        overflowY: "auto"
-      }}
-    >
+    <div style={containerStyle}>
       <h1 style={{ marginBottom: "1rem" }}>Welcome Page</h1>
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "1rem",
-          padding: "2rem",
-          borderRadius: "8px",
-          backgroundColor: "rgba(255, 255, 255, 0.1)",
-          width: "100%",
-          maxWidth: "600px"
-        }}
-      >
+      <div style={formStyle}>
         <select value={segId} onChange={(e) => setSegmentId(e.target.value)} style={inputStyle}>
           <option value="">-- Select Vehicle Segment --</option>
           {segments.map((seg) => (
@@ -153,7 +125,7 @@ function WelcomePage() {
           style={inputStyle}
         >
           <option value="">-- Select Manufacturer --</option>
-          {Array.isArray(manufacturers) && manufacturers.map(m => (
+          {manufacturers.map(m => (
             <option key={m.mfgId} value={m.mfgId}>{m.mfgName}</option>
           ))}
         </select>
@@ -190,19 +162,16 @@ function WelcomePage() {
               return;
             }
 
+            if (!userId) {
+              alert("User not logged in properly.");
+              return;
+            }
+
             navigate("/configuration", {
-              state: { segId, mfgId, modelId, quantity: Number(quantity) }
+              state: { segId, mfgId, modelId, quantity: Number(quantity), userId }  // pass userId here
             });
           }}
-          style={{
-            padding: "0.8rem",
-            borderRadius: "4px",
-            border: "none",
-            fontWeight: "bold",
-            backgroundColor: "#fff",
-            color: "#2a5298",
-            cursor: "pointer"
-          }}
+          style={buttonStyle}
         >
           Go
         </button>
@@ -211,11 +180,46 @@ function WelcomePage() {
   );
 }
 
+const containerStyle = {
+  height: "100vh",
+  width: "100vw",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  alignItems: "center",
+  background: "linear-gradient(to right, #1e3c72, #2a5298)",
+  color: "#fff",
+  fontFamily: "Arial, sans-serif",
+  padding: "1rem",
+  overflowY: "auto"
+};
+
+const formStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "1rem",
+  padding: "2rem",
+  borderRadius: "8px",
+  backgroundColor: "rgba(255, 255, 255, 0.1)",
+  width: "100%",
+  maxWidth: "600px"
+};
+
 const inputStyle = {
   padding: "0.8rem",
   borderRadius: "4px",
   border: "none",
   fontSize: "1rem"
+};
+
+const buttonStyle = {
+  padding: "0.8rem",
+  borderRadius: "4px",
+  border: "none",
+  fontWeight: "bold",
+  backgroundColor: "#fff",
+  color: "#2a5298",
+  cursor: "pointer"
 };
 
 export default WelcomePage;

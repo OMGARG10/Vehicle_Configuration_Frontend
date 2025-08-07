@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 function DefaultConfigurationPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { modelId } = location.state || {};
+  const { modelId, quantity } = location.state || {};
 
   const [modelInfo, setModelInfo] = useState(null);
 
@@ -17,7 +17,6 @@ function DefaultConfigurationPage() {
         return res.json();
       })
       .then((data) => {
-        console.log("Fetched default config:", data);
         setModelInfo(data);
       })
       .catch((err) => {
@@ -26,52 +25,33 @@ function DefaultConfigurationPage() {
       });
   }, [modelId]);
 
-  const handleConfirm = () => navigate("/invoice");
-const handleConfigure = () => navigate("/configure", { state: { modelId: modelInfo.modelId } });  
-const handleModify = () => navigate("/welcome");
+  const handleConfirm = () => {
+    if (!modelInfo) return;
+    navigate("/invoice", {
+      state: {
+        modelId: modelInfo.modelId,
+        quantity: quantity ?? modelInfo.minQty,
+        price: modelInfo.price,
+        totalAmount: (quantity ?? modelInfo.minQty) * modelInfo.price,
+        defaultComponents: modelInfo.defaultComponents,
+        modelName: modelInfo.modelName,
+      },
+    });
+  };
 
+  const handleConfigure = () => navigate("/configure", { state: { modelId: modelInfo.modelId } });
+  const handleModify = () => navigate("/welcome");
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        width: "100vw",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        background: "linear-gradient(to right, #1e3c72, #2a5298)",
-        color: "#fff",
-        fontFamily: "Arial, sans-serif",
-        padding: "2rem",
-        overflowY: "auto",
-        position: "relative",
-      }}
-    >
+    <div style={containerStyle}>
       <h1 style={{ marginBottom: "1rem" }}>Default Configuration</h1>
 
-      <div
-        style={{
-          backgroundColor: "rgba(255, 255, 255, 0.1)",
-          padding: "2rem",
-          borderRadius: "8px",
-          width: "100%",
-          maxWidth: "800px",
-          position: "relative",
-        }}
-      >
+      <div style={cardStyle}>
         {modelInfo && modelInfo.imagePath && (
           <img
             src={`http://localhost:8080${modelInfo.imagePath}`}
             alt={modelInfo.modelName}
-            style={{
-              width: "150px",
-              borderRadius: "8px",
-              position: "absolute",
-              top: "2rem",
-              right: "2rem",
-              boxShadow: "0 0 10px rgba(0,0,0,0.5)",
-              backgroundColor: "#fff",
-            }}
+            style={imageStyle}
           />
         )}
 
@@ -80,13 +60,14 @@ const handleModify = () => navigate("/welcome");
             <div><strong>Segment:</strong> {modelInfo.segment?.segName}</div>
             <div><strong>Manufacturer:</strong> {modelInfo.manufacturer?.mfgName}</div>
             <div><strong>Model:</strong> {modelInfo.modelName}</div>
-            <div><strong>Minimum Quantity:</strong> {modelInfo.minQty}</div>
-            <div><strong>Price:</strong> ₹{modelInfo.price}</div>
+            <div><strong>Quantity:</strong> {quantity ?? modelInfo.minQty}</div>
+            <div><strong>Price per Unit:</strong> ₹{modelInfo.price}</div>
+            <div><strong>Total Price:</strong> ₹{(quantity ?? modelInfo.minQty) * modelInfo.price}</div>
 
             <hr style={{ borderColor: "#fff", margin: "1rem 0" }} />
 
             <h3>Default Components</h3>
-            {modelInfo.defaultComponents && modelInfo.defaultComponents.length > 0 ? (
+            {modelInfo.defaultComponents?.length > 0 ? (
               <table style={{ width: "100%", borderCollapse: "collapse", color: "#fff" }}>
                 <thead>
                   <tr>
@@ -122,6 +103,39 @@ const handleModify = () => navigate("/welcome");
     </div>
   );
 }
+
+const containerStyle = {
+  minHeight: "100vh",
+  width: "100vw",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  background: "linear-gradient(to right, #1e3c72, #2a5298)",
+  color: "#fff",
+  fontFamily: "Arial, sans-serif",
+  padding: "2rem",
+  overflowY: "auto",
+  position: "relative",
+};
+
+const cardStyle = {
+  backgroundColor: "rgba(255, 255, 255, 0.1)",
+  padding: "2rem",
+  borderRadius: "8px",
+  width: "100%",
+  maxWidth: "800px",
+  position: "relative",
+};
+
+const imageStyle = {
+  width: "150px",
+  borderRadius: "8px",
+  position: "absolute",
+  top: "2rem",
+  right: "2rem",
+  boxShadow: "0 0 10px rgba(0,0,0,0.5)",
+  backgroundColor: "#fff",
+};
 
 const tableHeaderStyle = {
   borderBottom: "1px solid #fff",

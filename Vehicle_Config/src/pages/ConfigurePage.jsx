@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const typeMap = {
   S: "Standard",
@@ -9,14 +9,21 @@ const typeMap = {
 
 function ConfigurePage() {
   const location = useLocation();
-  const { modelId } = location.state || {};
+  const navigate = useNavigate();
+
+  // Expect modelId and userId in location.state; fallback to sessionStorage for userId
+  const { modelId, userId: stateUserId } = location.state || {};
+  const userId = stateUserId || sessionStorage.getItem("userId");
 
   const [defaultComponents, setDefaultComponents] = useState([]);
-  const [alternateMap, setAlternateMap] = useState({}); // compId -> [alternateComponents]
+  const [alternateMap, setAlternateMap] = useState({});
   const [basePrice, setBasePrice] = useState(0);
   const [totalPrice, setTotalPrice] = useState(0);
-  const [selectedAlternates, setSelectedAlternates] = useState({}); // compId -> altId
-  const [pendingAlternateSelection, setPendingAlternateSelection] = useState({}); // compId -> altId
+  const [selectedAlternates, setSelectedAlternates] = useState({});
+  const [pendingAlternateSelection, setPendingAlternateSelection] = useState({});
+  const [selectedType, setSelectedType] = useState("S");
+  const [minQuantity, setMinQuantity] = useState(1); // store model min quantity
+  const [quantity, setQuantity] = useState(1); // quantity user selects
 
   useEffect(() => {
     if (!modelId) return;
@@ -52,9 +59,17 @@ function ConfigurePage() {
         setPendingAlternateSelection({});
       })
       .catch((err) => console.error("Error fetching base price:", err));
+
+    // Fetch model min quantity
+    fetch(`http://localhost:8080/models/${modelId}`)
+      .then((res) => res.json())
+      .then((model) => {
+        setMinQuantity(model.minQty || 1);
+        setQuantity(model.minQty || 1);
+      })
+      .catch((err) => console.error("Error fetching model details:", err));
   }, [modelId]);
 
-  // Calculate total price from base price + all selected alternates' deltaPrices
   const recalcTotalPrice = (newSelectedAlternates) => {
     let newTotal = basePrice;
     for (const [compId, altId] of Object.entries(newSelectedAlternates)) {
@@ -90,7 +105,6 @@ function ConfigurePage() {
     setSelectedAlternates(newSelected);
     recalcTotalPrice(newSelected);
 
-    // Clear pending selection for this component after adding
     setPendingAlternateSelection((prev) => ({
       ...prev,
       [compId]: "",
@@ -104,6 +118,32 @@ function ConfigurePage() {
     setSelectedAlternates(newSelected);
     recalcTotalPrice(newSelected);
   };
+
+  const handleQuantityChange = (e) => {
+    const val = parseInt(e.target.value);
+    if (isNaN(val) || val < minQuantity) {
+      setQuantity(minQuantity);
+    } else {
+      setQuantity(val);
+    }
+  };
+
+  // If no userId or modelId, show error or redirect
+  if (!userId) {
+    return (
+      <div style={{ padding: "2rem", color: "red" }}>
+        User not logged in. Please login first.
+      </div>
+    );
+  }
+
+  if (!modelId) {
+    return (
+      <div style={{ padding: "2rem", color: "red" }}>
+        No model selected. Please select a model first.
+      </div>
+    );
+  }
 
   return (
     <div
@@ -119,126 +159,297 @@ function ConfigurePage() {
         padding: "2rem",
       }}
     >
-      <h1 style={{ marginBottom: "2rem" }}>Configure Your Car</h1>
-      <h3 style={{ marginBottom: "1rem" }}>
+      <h1 style={{ marginBottom: "1rem" }}>Configure Your Car</h1>
+      <h3 style={{ marginBottom: "0.5rem" }}>
         Base Price: ₹{basePrice} | Total Price: ₹{totalPrice}
       </h3>
 
+      <label style={{ marginBottom: "1rem", fontWeight: "bold" }}>
+        Quantity (Min: {minQuantity}):
+        <input
+          type="number"
+          min={minQuantity}
+          value={quantity}
+          onChange={handleQuantityChange}
+          style={{
+            marginLeft: "0.5rem",
+            padding: "0.3rem",
+            borderRadius: "4px",
+            border: "none",
+            width: "60px",
+            fontWeight: "bold",
+          }}
+        />
+      </label>
+
+      <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
+        {["S", "I", "E"].map((type) => (
+          <button
+            key={type}
+            onClick={() => setSelectedType(type)}
+            style={{
+              padding: "0.6rem 1.2rem",
+              borderRadius: "4px",
+              border: "none",
+              backgroundColor: selectedType === type ? "#fff" : "#2a5298",
+              color: selectedType === type ? "#2a5298" : "#fff",
+              fontWeight: "bold",
+              cursor: "pointer",
+            }}
+          >
+            {typeMap[type]}
+          </button>
+        ))}
+      </div>
+
       <div
         style={{
+          display: "flex",
+          gap: "2rem",
           backgroundColor: "rgba(255, 255, 255, 0.1)",
           padding: "2rem",
           borderRadius: "8px",
           width: "100%",
-          maxWidth: "900px",
+          maxWidth: "1000px",
         }}
       >
-        {defaultComponents.length === 0 ? (
-          <p>No configurable components found for this model.</p>
-        ) : (
-          defaultComponents.map((comp) => {
-            const compId = comp.component.compId.toString();
-            const compName = comp.component.compName || `Component #${compId}`;
-            const compTypeLabel = typeMap[comp.compType] || comp.compType;
-            const alternatesForComp = alternateMap[compId] || [];
-            const selectedAltId = selectedAlternates[compId];
-            const pendingAltId = pendingAlternateSelection[compId] || "";
+        <div style={{ flex: 1 }}>
+          <h3>Configurable Components</h3>
+          {defaultComponents
+            .filter(
+              (comp) => comp.compType === selectedType && comp.isConfigurable === "Y"
+            )
+            .map((comp) => {
+              const compId = comp.component.compId.toString();
+              const compName = comp.component.compName || `Component #${compId}`;
+              const selectedAltId = selectedAlternates[compId];
 
-            return (
-              <div
-                key={comp.configId}
-                style={{
-                  marginBottom: "2rem",
-                  padding: "1rem",
-                  backgroundColor: "rgba(255, 255, 255, 0.15)",
-                  borderRadius: "6px",
-                }}
-              >
-                <h4>
-                  {compName} ({compTypeLabel})
-                </h4>
-                <p>
-                  <strong>
-                    Default Component Selected
-                    {selectedAltId && (
-                      <> (Replaced by: {alternatesForComp.find(a => a.altId === selectedAltId)?.alternateComponent.compName})</>
-                    )}
-                  </strong>
-                </p>
+              return (
+                <div
+                  key={comp.configId}
+                  style={{
+                    marginBottom: "1rem",
+                    padding: "1rem",
+                    backgroundColor: "rgba(255, 255, 255, 0.15)",
+                    borderRadius: "6px",
+                  }}
+                >
+                  <h4>
+                    {compName}
+                    {selectedAltId &&
+                      (() => {
+                        const altObj = (alternateMap[compId] || []).find(
+                          (alt) => alt.altId === selectedAltId
+                        );
+                        return altObj
+                          ? ` (Replaced with ${altObj.alternateComponent?.compName})`
+                          : "";
+                      })()}
+                  </h4>
+                </div>
+              );
+            })}
+        </div>
 
-                {alternatesForComp.length === 0 ? (
-                  <p>No alternates available</p>
-                ) : (
-                  <>
-                    <label
-                      htmlFor={`alternate-select-${compId}`}
-                      style={{ fontWeight: "bold", display: "block", marginBottom: "0.5rem" }}
-                    >
-                      Select Alternate:
-                    </label>
-                    <select
-                      id={`alternate-select-${compId}`}
-                      value={pendingAltId}
-                      onChange={(e) =>
-                        handlePendingChange(compId, e.target.value ? parseInt(e.target.value) : "")
-                      }
-                      style={{
-                        width: "100%",
-                        padding: "0.5rem",
-                        borderRadius: "4px",
-                        border: "none",
-                        fontSize: "1rem",
-                        fontWeight: "bold",
-                        color: "#2a5298",
-                        outline: "none",
-                        marginBottom: "0.5rem",
-                      }}
-                    >
-                      <option value="">-- Select Alternate --</option>
-                      {alternatesForComp.map((alt) => (
-                        <option key={alt.altId} value={alt.altId}>
-                          {alt.alternateComponent?.compName} | Δ ₹{alt.deltaPrice}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={() => handleAddAlternate(compId)}
-                      disabled={!pendingAltId}
-                      style={{
-                        padding: "0.5rem 1rem",
-                        borderRadius: "4px",
-                        border: "none",
-                        backgroundColor: "#2a5298",
-                        color: "#fff",
-                        fontWeight: "bold",
-                        cursor: pendingAltId ? "pointer" : "not-allowed",
-                        marginBottom: "0.5rem",
-                      }}
-                    >
-                      Add Alternate
-                    </button>
-                    {selectedAltId && (
+        <div style={{ flex: 2 }}>
+          <h3>Available Alternates</h3>
+          {defaultComponents
+            .filter(
+              (comp) => comp.compType === selectedType && comp.isConfigurable === "Y"
+            )
+            .map((comp) => {
+              const compId = comp.component.compId.toString();
+              const compName = comp.component.compName || `Component #${compId}`;
+              const alternatesForComp = alternateMap[compId] || [];
+              const selectedAltId = selectedAlternates[compId];
+              const pendingAltId = pendingAlternateSelection[compId] || "";
+
+              return (
+                <div
+                  key={comp.configId}
+                  style={{
+                    marginBottom: "2rem",
+                    padding: "1rem",
+                    backgroundColor: "rgba(255, 255, 255, 0.15)",
+                    borderRadius: "6px",
+                  }}
+                >
+                  <h4>{compName}</h4>
+                  {alternatesForComp.length === 0 ? (
+                    <p>No alternates available</p>
+                  ) : (
+                    <>
+                      <select
+                        id={`alternate-select-${compId}`}
+                        value={pendingAltId}
+                        onChange={(e) =>
+                          handlePendingChange(
+                            compId,
+                            e.target.value ? parseInt(e.target.value) : ""
+                          )
+                        }
+                        style={{
+                          width: "100%",
+                          padding: "0.5rem",
+                          borderRadius: "4px",
+                          border: "none",
+                          fontSize: "1rem",
+                          fontWeight: "bold",
+                          color: "#2a5298",
+                          outline: "none",
+                          marginBottom: "0.5rem",
+                        }}
+                      >
+                        <option value="">-- Select Alternate --</option>
+                        {alternatesForComp.map((alt) => (
+                          <option key={alt.altId} value={alt.altId}>
+                            {alt.alternateComponent?.compName} | ₹{alt.deltaPrice}
+                          </option>
+                        ))}
+                      </select>
                       <button
-                        onClick={() => handleRemoveAlternate(compId)}
+                        onClick={() => handleAddAlternate(compId)}
+                        disabled={!pendingAltId}
                         style={{
                           padding: "0.5rem 1rem",
                           borderRadius: "4px",
                           border: "none",
-                          backgroundColor: "#b33",
+                          backgroundColor: "#2a5298",
                           color: "#fff",
                           fontWeight: "bold",
-                          cursor: "pointer",
+                          cursor: pendingAltId ? "pointer" : "not-allowed",
+                          marginRight: "0.5rem",
                         }}
                       >
-                        Remove Alternate
+                        Add Alternate
                       </button>
-                    )}
-                  </>
-                )}
-              </div>
-            );
-          })
-        )}
+                      {selectedAltId && (
+                        <button
+                          onClick={() => handleRemoveAlternate(compId)}
+                          style={{
+                            padding: "0.5rem 1rem",
+                            borderRadius: "4px",
+                            border: "none",
+                            backgroundColor: "#b33",
+                            color: "#fff",
+                            fontWeight: "bold",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Remove Alternate
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+        </div>
+      </div>
+
+      {/* ✅ Confirm & Cancel Buttons */}
+      <div style={{ marginTop: "2rem", display: "flex", gap: "1rem" }}>
+        <button
+          onClick={async () => {
+            try {
+              // Prepare the details array for invoice
+              const details = Object.entries(selectedAlternates).map(
+                ([compId, altId]) => ({
+                  compId: parseInt(compId),
+                  isAlternate: "Y", // user selected alternate
+                })
+              );
+
+              // Add base components that were not replaced by alternates
+              const baseCompIds = defaultComponents
+                .filter((comp) => comp.isConfigurable === "Y")
+                .map((comp) => comp.component.compId);
+
+              baseCompIds.forEach((compId) => {
+                if (!selectedAlternates[compId]) {
+                  details.push({
+                    compId: compId,
+                    isAlternate: "N",
+                  });
+                }
+              });
+
+              if (!userId) {
+                alert("User not logged in properly.");
+                return;
+              }
+
+              // Prepare payload with userId (instead of customer)
+              const payload = {
+                modelId: modelId,
+                quantity: quantity,
+                userId: userId,
+                details: details,
+              };
+
+              const response = await fetch(
+                "http://localhost:8080/invoices/create",
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify(payload),
+                }
+              );
+
+              if (!response.ok)
+                throw new Error("Failed to create invoice");
+
+              const createdInvoice = await response.json();
+
+              navigate("/invoice", {
+                state: {
+                  invoice: createdInvoice,
+                  modelId,
+                  selectedAlternates,
+                  totalPrice,
+                  basePrice,
+                  quantity,
+                  userId,
+                },
+              });
+            } catch (err) {
+              console.error("Error creating invoice:", err);
+              alert("Failed to create invoice. Please try again.");
+            }
+          }}
+          style={{
+            padding: "0.8rem 1.5rem",
+            borderRadius: "4px",
+            border: "none",
+            backgroundColor: "#28a745",
+            color: "#fff",
+            fontWeight: "bold",
+            cursor: "pointer",
+          }}
+        >
+          Confirm Order
+        </button>
+
+        <button
+          onClick={() => {
+            navigate("/configuration", {
+              state: { modelId, userId },
+            });
+          }}
+          style={{
+            padding: "0.8rem 1.5rem",
+            borderRadius: "4px",
+            border: "none",
+            backgroundColor: "#dc3545",
+            color: "#fff",
+            fontWeight: "bold",
+            cursor: "pointer",
+          }}
+        >
+          Cancel
+        </button>
       </div>
     </div>
   );

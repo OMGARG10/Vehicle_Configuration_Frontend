@@ -1,13 +1,14 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom"; // 👈 Import navigation hook
+import { useNavigate } from "react-router-dom";
 
 function RegistrationForm() {
-  const navigate = useNavigate(); // 👈 Initialize navigation
+  const navigate = useNavigate();
 
   const initialForm = {
     companyName: "", address1: "", address2: "", area: "", city: "", state: "", pin: "",
     tel: "", fax: "", holding: "", authorizedPerson: "", designation: "",
-    telAuth: "", cell: "", stNo: "", vatNo: "", pan: ""
+    telAuth: "", cell: "", stNo: "", vatNo: "", pan: "",
+    email: "", password: ""
   };
 
   const [form, setForm] = useState(initialForm);
@@ -21,9 +22,14 @@ function RegistrationForm() {
     setForm(initialForm);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const requiredFields = ["companyName", "address1", "city", "state", "pin", "holding", "authorizedPerson", "designation"];
+
+    const requiredFields = [
+      "companyName", "address1", "city", "state", "pin",
+      "holding", "authorizedPerson", "designation", "email", "password"
+    ];
+
     for (let field of requiredFields) {
       if (!form[field]) {
         alert("Please fill all mandatory (*) fields.");
@@ -31,11 +37,53 @@ function RegistrationForm() {
       }
     }
 
-    const registrationNumber = "REG-" + Date.now();
-    alert(`Registration Successful!\nYour Registration Number: ${registrationNumber}`);
-    handleClear();
+    const payload = {
+      company_name: form.companyName,
+      add1: form.address1,
+      add2: form.address2,
+      city: form.city,
+      state: form.state,
+      pin: parseInt(form.pin),
+      tel: form.tel,
+      fax: form.fax,
+      auth_name: form.authorizedPerson,
+      designation: form.designation,
+      auth_tel: form.telAuth || "NA",
+      cell: form.cell,
+      company_st_no: form.stNo || "NA",
+      company_vat_no: form.vatNo || "NA",
+      tax_pan: form.pan,
+      holding_type: form.holding.replace(".", "").replace(" ", "_"),
+      email: form.email,
+      password: form.password
+    };
 
-    navigate("/signin"); // 👈 Redirect to Sign In page
+    try {
+      const response = await fetch("http://localhost:8080/users/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || "Server error");
+      }
+
+      const savedUser = await response.json();
+
+      // ✅ Save to sessionStorage
+      sessionStorage.setItem("user", JSON.stringify(savedUser));
+
+      alert("Registration Successful!");
+      handleClear();
+      navigate("/signin"); // Navigate to configure page
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Registration failed. Please try again.");
+    }
   };
 
   return (
@@ -84,11 +132,13 @@ function RegistrationForm() {
           { label: "Cell", name: "cell" },
           { label: "Company's ST No", name: "stNo" },
           { label: "Company VAT Reg. No", name: "vatNo" },
-          { label: "I Tax PAN (if needed)", name: "pan" }
+          { label: "I Tax PAN (if needed)", name: "pan" },
+          { label: "Email *", name: "email" },
+          { label: "Password *", name: "password" }
         ].map(({ label, name }) => (
           <input
             key={name}
-            type="text"
+            type={name === "password" ? "password" : "text"}
             placeholder={label}
             name={name}
             value={form[name]}
