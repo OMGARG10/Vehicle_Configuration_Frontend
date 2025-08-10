@@ -11,9 +11,19 @@ function ConfigurePage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Expect modelId and userId in location.state; fallback to sessionStorage for userId
-  const { modelId, userId: stateUserId } = location.state || {};
+  // Get modelId, userId, quantity, minQuantity from location.state
+  const {
+    modelId,
+    userId: stateUserId,
+    quantity: stateQuantity,
+    minQuantity: stateMinQuantity,
+  } = location.state || {};
+
   const userId = stateUserId || sessionStorage.getItem("userId");
+
+  // Use quantity and minQuantity from previous page or default values
+  const [minQuantity] = useState(stateMinQuantity ?? 1);
+  const [quantity, setQuantity] = useState(stateQuantity ?? minQuantity ?? 1);
 
   const [defaultComponents, setDefaultComponents] = useState([]);
   const [alternateMap, setAlternateMap] = useState({});
@@ -22,17 +32,13 @@ function ConfigurePage() {
   const [selectedAlternates, setSelectedAlternates] = useState({});
   const [pendingAlternateSelection, setPendingAlternateSelection] = useState({});
   const [selectedType, setSelectedType] = useState("S");
-  const [minQuantity, setMinQuantity] = useState(1); // store model min quantity
-  const [quantity, setQuantity] = useState(1); // quantity user selects
 
   useEffect(() => {
     if (!modelId) return;
 
     fetch(`http://localhost:8080/models/configurable/${modelId}`)
       .then((res) => res.json())
-      .then((data) => {
-        setDefaultComponents(data);
-      })
+      .then((data) => setDefaultComponents(data))
       .catch((err) => console.error("Error fetching default components:", err));
 
     fetch(`http://localhost:8080/models/alternate-components/${modelId}`)
@@ -60,14 +66,7 @@ function ConfigurePage() {
       })
       .catch((err) => console.error("Error fetching base price:", err));
 
-    // Fetch model min quantity
-    fetch(`http://localhost:8080/models/${modelId}`)
-      .then((res) => res.json())
-      .then((model) => {
-        setMinQuantity(model.minQty || 1);
-        setQuantity(model.minQty || 1);
-      })
-      .catch((err) => console.error("Error fetching model details:", err));
+    // ** DO NOT fetch minQuantity from backend here! **
   }, [modelId]);
 
   const recalcTotalPrice = (newSelectedAlternates) => {
@@ -128,7 +127,6 @@ function ConfigurePage() {
     }
   };
 
-  // If no userId or modelId, show error or redirect
   if (!userId) {
     return (
       <div style={{ padding: "2rem", color: "red" }}>
@@ -165,22 +163,23 @@ function ConfigurePage() {
       </h3>
 
       <label style={{ marginBottom: "1rem", fontWeight: "bold" }}>
-        Quantity (Min: {minQuantity}):
-        <input
-          type="number"
-          min={minQuantity}
-          value={quantity}
-          onChange={handleQuantityChange}
+        Quantity :
+        <span
           style={{
             marginLeft: "0.5rem",
-            padding: "0.3rem",
+            padding: "0.3rem 0.6rem",
             borderRadius: "4px",
-            border: "none",
-            width: "60px",
+            backgroundColor: "#2a5298",
             fontWeight: "bold",
+            display: "inline-block",
+            minWidth: "60px",
+            textAlign: "center",
           }}
-        />
+        >
+          {quantity}
+        </span>
       </label>
+
 
       <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
         {["S", "I", "E"].map((type) => (
@@ -347,20 +346,19 @@ function ConfigurePage() {
         </div>
       </div>
 
-      {/* ✅ Confirm & Cancel Buttons */}
+      {/* Confirm & Cancel Buttons */}
       <div style={{ marginTop: "2rem", display: "flex", gap: "1rem" }}>
         <button
           onClick={async () => {
             try {
-              // Prepare the details array for invoice
               const details = Object.entries(selectedAlternates).map(
                 ([compId, altId]) => ({
                   compId: parseInt(compId),
-                  isAlternate: "Y", // user selected alternate
+                  isAlternate: "Y",
                 })
               );
 
-              // Add base components that were not replaced by alternates
+              // Add base components not replaced by alternates
               const baseCompIds = defaultComponents
                 .filter((comp) => comp.isConfigurable === "Y")
                 .map((comp) => comp.component.compId);
@@ -379,7 +377,6 @@ function ConfigurePage() {
                 return;
               }
 
-              // Prepare payload with userId (instead of customer)
               const payload = {
                 modelId: modelId,
                 quantity: quantity,
@@ -398,8 +395,7 @@ function ConfigurePage() {
                 }
               );
 
-              if (!response.ok)
-                throw new Error("Failed to create invoice");
+              if (!response.ok) throw new Error("Failed to create invoice");
 
               const createdInvoice = await response.json();
 

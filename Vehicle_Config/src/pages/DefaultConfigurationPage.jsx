@@ -25,21 +25,72 @@ function DefaultConfigurationPage() {
       });
   }, [modelId]);
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!modelInfo) return;
-    navigate("/invoice", {
+
+    try {
+      const userId = sessionStorage.getItem("userId");
+      if (!userId) {
+        alert("User not logged in.");
+        return;
+      }
+
+      const quantityToUse = quantity ?? modelInfo.minQty;
+
+      // Prepare default components list (without alternates)
+      const details = modelInfo.defaultComponents.map((comp) => ({
+        compId: comp.component.compId,
+        isAlternate: "N",
+      }));
+
+      const payload = {
+        modelId: modelInfo.modelId,
+        quantity: quantityToUse,
+        userId: parseInt(userId),
+        details: details,
+      };
+
+      const response = await fetch("http://localhost:8080/invoices/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create invoice");
+      }
+
+      const invoiceData = await response.json();
+
+      navigate("/invoice", {
+        state: {
+          invoice: invoiceData,
+          modelId: modelInfo.modelId,
+          modelName: modelInfo.modelName,
+          totalPrice: modelInfo.price * quantityToUse,
+          basePrice: modelInfo.price,
+          quantity: quantityToUse,
+          userId: userId,
+          defaultComponents: modelInfo.defaultComponents,
+        },
+      });
+    } catch (error) {
+      console.error("Invoice creation failed:", error);
+      alert("Failed to create invoice.");
+    }
+  };
+
+
+  const handleConfigure = () =>
+    navigate("/configure", {
       state: {
         modelId: modelInfo.modelId,
         quantity: quantity ?? modelInfo.minQty,
-        price: modelInfo.price,
-        totalAmount: (quantity ?? modelInfo.minQty) * modelInfo.price,
-        defaultComponents: modelInfo.defaultComponents,
-        modelName: modelInfo.modelName,
       },
     });
-  };
 
-  const handleConfigure = () => navigate("/configure", { state: { modelId: modelInfo.modelId } });
   const handleModify = () => navigate("/welcome");
 
   return (
