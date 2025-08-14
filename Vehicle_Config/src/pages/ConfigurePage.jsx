@@ -94,11 +94,7 @@ function ConfigurePage() {
     const newSelected = { ...selectedAlternates, [compId]: altId };
     setSelectedAlternates(newSelected);
     recalcTotalPrice(newSelected);
-
-    setPendingAlternateSelection((prev) => ({
-      ...prev,
-      [compId]: "",
-    }));
+    setPendingAlternateSelection((prev) => ({ ...prev, [compId]: "" }));
   };
 
   const handleRemoveAlternate = (compId) => {
@@ -218,7 +214,8 @@ function ConfigurePage() {
                       {selectedAltObj && (
                         <div style={selectedAltDisplayStyle}>
                           <span>
-                            Selected: {selectedAltObj.alternateComponent?.compName} | ₹{selectedAltObj.deltaPrice}
+                            Selected: {selectedAltObj.alternateComponent?.compName} | ₹
+                            {selectedAltObj.deltaPrice}
                           </span>
                           <button
                             onClick={() => handleRemoveAlternate(compId)}
@@ -240,23 +237,30 @@ function ConfigurePage() {
         <button
           onClick={async () => {
             try {
-              const details = Object.entries(selectedAlternates).map(([compId, altId]) => ({
-                compId: parseInt(compId),
-                isAlternate: "Y",
-              }));
+              const details = [];
 
-              const baseCompIds = defaultComponents
-                .filter((comp) => comp.isConfigurable === "Y")
-                .map((comp) => comp.component.compId);
-
-              baseCompIds.forEach((compId) => {
-                if (!selectedAlternates[compId]) {
-                  details.push({
-                    compId: compId,
-                    isAlternate: "N",
-                  });
-                }
+              // Add selected alternates
+              Object.entries(selectedAlternates).forEach(([compId, altId]) => {
+                details.push({
+                  compId: parseInt(compId),
+                  isAlternate: "Y",
+                  selectedAltCompId: altId, // ✅ send to backend
+                });
               });
+
+              // Add base components without alternates
+              defaultComponents
+                .filter((comp) => comp.isConfigurable === "Y")
+                .forEach((comp) => {
+                  const cid = comp.component.compId;
+                  if (!selectedAlternates[cid]) {
+                    details.push({
+                      compId: cid,
+                      isAlternate: "N",
+                      selectedAltCompId: null,
+                    });
+                  }
+                });
 
               const payload = {
                 modelId,
@@ -349,9 +353,7 @@ const subheadingStyle = {
   fontSize: "1.2rem",
 };
 
-const centeredTextBlock = {
-  textAlign: "center",
-};
+const centeredTextBlock = { textAlign: "center" };
 
 const typeButtonContainerStyle = {
   display: "flex",
@@ -379,11 +381,7 @@ const horizontalComponentBlockStyle = {
   boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
 };
 
-const componentNameStyle = {
-  flex: 1,
-  marginRight: "1rem",
-  fontSize: "1rem",
-};
+const componentNameStyle = { flex: 1, marginRight: "1rem", fontSize: "1rem" };
 
 const alternateBlockStyle = {
   flex: 2,
