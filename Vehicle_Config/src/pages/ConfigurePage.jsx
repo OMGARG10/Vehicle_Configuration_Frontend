@@ -10,8 +10,6 @@ const typeMap = {
 function ConfigurePage() {
   const location = useLocation();
   const navigate = useNavigate();
-
-  // Get modelId, userId, quantity, minQuantity from location.state
   const {
     modelId,
     userId: stateUserId,
@@ -20,8 +18,6 @@ function ConfigurePage() {
   } = location.state || {};
 
   const userId = stateUserId || sessionStorage.getItem("userId");
-
-  // Use quantity and minQuantity from previous page or default values
   const [minQuantity] = useState(stateMinQuantity ?? 1);
   const [quantity, setQuantity] = useState(stateQuantity ?? minQuantity ?? 1);
 
@@ -65,8 +61,6 @@ function ConfigurePage() {
         setPendingAlternateSelection({});
       })
       .catch((err) => console.error("Error fetching base price:", err));
-
-    // ** DO NOT fetch minQuantity from backend here! **
   }, [modelId]);
 
   const recalcTotalPrice = (newSelectedAlternates) => {
@@ -97,10 +91,7 @@ function ConfigurePage() {
       alert("This alternate is already added.");
       return;
     }
-    const newSelected = {
-      ...selectedAlternates,
-      [compId]: altId,
-    };
+    const newSelected = { ...selectedAlternates, [compId]: altId };
     setSelectedAlternates(newSelected);
     recalcTotalPrice(newSelected);
 
@@ -144,221 +135,116 @@ function ConfigurePage() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        width: "100vw",
-        background: "linear-gradient(to right, #1e3c72, #2a5298)",
-        color: "#fff",
-        fontFamily: "Arial, sans-serif",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        padding: "2rem",
-      }}
-    >
-      <h1 style={{ marginBottom: "1rem" }}>Configure Your Car</h1>
-      <h3 style={{ marginBottom: "0.5rem" }}>
-        Base Price: ₹{basePrice} | Total Price: ₹{totalPrice}
-      </h3>
+    <div style={containerStyle}>
+      <h1 style={headingStyle}>Configure Your Car</h1>
 
-      <label style={{ marginBottom: "1rem", fontWeight: "bold" }}>
-        Quantity :
-        <span
-          style={{
-            marginLeft: "0.5rem",
-            padding: "0.3rem 0.6rem",
-            borderRadius: "4px",
-            backgroundColor: "#2a5298",
-            fontWeight: "bold",
-            display: "inline-block",
-            minWidth: "60px",
-            textAlign: "center",
-          }}
-        >
-          {quantity}
-        </span>
-      </label>
+      <div style={mainCardStyle}>
+        <div style={centeredTextBlock}>
+          <h3 style={subheadingStyle}>
+            Base Price: ₹{basePrice} | Total Price: ₹{totalPrice}
+          </h3>
 
-
-      <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
-        {["S", "I", "E"].map((type) => (
-          <button
-            key={type}
-            onClick={() => setSelectedType(type)}
-            style={{
-              padding: "0.6rem 1.2rem",
-              borderRadius: "4px",
-              border: "none",
-              backgroundColor: selectedType === type ? "#fff" : "#2a5298",
-              color: selectedType === type ? "#2a5298" : "#fff",
-              fontWeight: "bold",
-              cursor: "pointer",
-            }}
-          >
-            {typeMap[type]}
-          </button>
-        ))}
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          gap: "2rem",
-          backgroundColor: "rgba(255, 255, 255, 0.1)",
-          padding: "2rem",
-          borderRadius: "8px",
-          width: "100%",
-          maxWidth: "1000px",
-        }}
-      >
-        <div style={{ flex: 1 }}>
-          <h3>Configurable Components</h3>
-          {defaultComponents
-            .filter(
-              (comp) => comp.compType === selectedType && comp.isConfigurable === "Y"
-            )
-            .map((comp) => {
-              const compId = comp.component.compId.toString();
-              const compName = comp.component.compName || `Component #${compId}`;
-              const selectedAltId = selectedAlternates[compId];
-
-              return (
-                <div
-                  key={comp.configId}
-                  style={{
-                    marginBottom: "1rem",
-                    padding: "1rem",
-                    backgroundColor: "rgba(255, 255, 255, 0.15)",
-                    borderRadius: "6px",
-                  }}
-                >
-                  <h4>
-                    {compName}
-                    {selectedAltId &&
-                      (() => {
-                        const altObj = (alternateMap[compId] || []).find(
-                          (alt) => alt.altId === selectedAltId
-                        );
-                        return altObj
-                          ? ` (Replaced with ${altObj.alternateComponent?.compName})`
-                          : "";
-                      })()}
-                  </h4>
-                </div>
-              );
-            })}
+          <div style={typeButtonContainerStyle}>
+            {["S", "I", "E"].map((type) => (
+              <button
+                key={type}
+                onClick={() => setSelectedType(type)}
+                style={{
+                  ...typeButtonStyle,
+                  backgroundColor: selectedType === type ? "#fff" : "#2a5298",
+                  color: selectedType === type ? "#2a5298" : "#fff",
+                }}
+              >
+                {typeMap[type]}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div style={{ flex: 2 }}>
-          <h3>Available Alternates</h3>
-          {defaultComponents
-            .filter(
-              (comp) => comp.compType === selectedType && comp.isConfigurable === "Y"
-            )
-            .map((comp) => {
-              const compId = comp.component.compId.toString();
-              const compName = comp.component.compName || `Component #${compId}`;
-              const alternatesForComp = alternateMap[compId] || [];
-              const selectedAltId = selectedAlternates[compId];
-              const pendingAltId = pendingAlternateSelection[compId] || "";
+        {defaultComponents
+          .filter((comp) => comp.compType === selectedType && comp.isConfigurable === "Y")
+          .map((comp) => {
+            const compId = comp.component.compId.toString();
+            const compName = comp.component.compName || `Component #${compId}`;
+            const selectedAltId = selectedAlternates[compId];
+            const alternatesForComp = alternateMap[compId] || [];
+            const pendingAltId = pendingAlternateSelection[compId] || "";
+            const selectedAltObj = alternatesForComp.find((alt) => alt.altId === selectedAltId);
 
-              return (
-                <div
-                  key={comp.configId}
-                  style={{
-                    marginBottom: "2rem",
-                    padding: "1rem",
-                    backgroundColor: "rgba(255, 255, 255, 0.15)",
-                    borderRadius: "6px",
-                  }}
-                >
-                  <h4>{compName}</h4>
+            return (
+              <div key={comp.configId} style={horizontalComponentBlockStyle}>
+                <div style={componentNameStyle}>
+                  <strong>{compName}</strong>
+                </div>
+
+                <div style={alternateBlockStyle}>
                   {alternatesForComp.length === 0 ? (
-                    <p>No alternates available</p>
+                    <p>No alternates</p>
                   ) : (
                     <>
-                      <select
-                        id={`alternate-select-${compId}`}
-                        value={pendingAltId}
-                        onChange={(e) =>
-                          handlePendingChange(
-                            compId,
-                            e.target.value ? parseInt(e.target.value) : ""
-                          )
-                        }
-                        style={{
-                          width: "100%",
-                          padding: "0.5rem",
-                          borderRadius: "4px",
-                          border: "none",
-                          fontSize: "1rem",
-                          fontWeight: "bold",
-                          color: "#2a5298",
-                          outline: "none",
-                          marginBottom: "0.5rem",
-                        }}
-                      >
-                        <option value="">-- Select Alternate --</option>
-                        {alternatesForComp.map((alt) => (
-                          <option key={alt.altId} value={alt.altId}>
-                            {alt.alternateComponent?.compName} | ₹{alt.deltaPrice}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={() => handleAddAlternate(compId)}
-                        disabled={!pendingAltId}
-                        style={{
-                          padding: "0.5rem 1rem",
-                          borderRadius: "4px",
-                          border: "none",
-                          backgroundColor: "#2a5298",
-                          color: "#fff",
-                          fontWeight: "bold",
-                          cursor: pendingAltId ? "pointer" : "not-allowed",
-                          marginRight: "0.5rem",
-                        }}
-                      >
-                        Add Alternate
-                      </button>
-                      {selectedAltId && (
-                        <button
-                          onClick={() => handleRemoveAlternate(compId)}
+                      <div style={{ display: "flex", gap: "0.5rem" }}>
+                        <select
+                          value={pendingAltId}
+                          onChange={(e) =>
+                            handlePendingChange(
+                              compId,
+                              e.target.value ? parseInt(e.target.value) : ""
+                            )
+                          }
                           style={{
-                            padding: "0.5rem 1rem",
-                            borderRadius: "4px",
-                            border: "none",
-                            backgroundColor: "#b33",
-                            color: "#fff",
-                            fontWeight: "bold",
-                            cursor: "pointer",
+                            ...selectStyle,
+                            borderColor: pendingAltId ? "#2a5298" : "#ccc",
                           }}
                         >
-                          Remove Alternate
+                          <option value="">-- Select Alternate --</option>
+                          {alternatesForComp.map((alt) => (
+                            <option key={alt.altId} value={alt.altId}>
+                              {alt.alternateComponent?.compName} | ₹{alt.deltaPrice}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => handleAddAlternate(compId)}
+                          disabled={!pendingAltId}
+                          style={{
+                            ...addButtonStyle,
+                            cursor: pendingAltId ? "pointer" : "not-allowed",
+                          }}
+                        >
+                          Add
                         </button>
+                      </div>
+
+                      {selectedAltObj && (
+                        <div style={selectedAltDisplayStyle}>
+                          <span>
+                            Selected: {selectedAltObj.alternateComponent?.compName} | ₹{selectedAltObj.deltaPrice}
+                          </span>
+                          <button
+                            onClick={() => handleRemoveAlternate(compId)}
+                            style={removeButtonStyle}
+                          >
+                            Remove
+                          </button>
+                        </div>
                       )}
                     </>
                   )}
                 </div>
-              );
-            })}
-        </div>
+              </div>
+            );
+          })}
       </div>
 
-      {/* Confirm & Cancel Buttons */}
-      <div style={{ marginTop: "2rem", display: "flex", gap: "1rem" }}>
+      <div style={footerButtonContainerStyle}>
         <button
           onClick={async () => {
             try {
-              const details = Object.entries(selectedAlternates).map(
-                ([compId, altId]) => ({
-                  compId: parseInt(compId),
-                  isAlternate: "Y",
-                })
-              );
+              const details = Object.entries(selectedAlternates).map(([compId, altId]) => ({
+                compId: parseInt(compId),
+                isAlternate: "Y",
+              }));
 
-              // Add base components not replaced by alternates
               const baseCompIds = defaultComponents
                 .filter((comp) => comp.isConfigurable === "Y")
                 .map((comp) => comp.component.compId);
@@ -372,28 +258,18 @@ function ConfigurePage() {
                 }
               });
 
-              if (!userId) {
-                alert("User not logged in properly.");
-                return;
-              }
-
               const payload = {
-                modelId: modelId,
-                quantity: quantity,
-                userId: userId,
-                details: details,
+                modelId,
+                quantity,
+                userId,
+                details,
               };
 
-              const response = await fetch(
-                "http://localhost:8080/invoices/create",
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify(payload),
-                }
-              );
+              const response = await fetch("http://localhost:8080/invoices/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
 
               if (!response.ok) throw new Error("Failed to create invoice");
 
@@ -415,34 +291,14 @@ function ConfigurePage() {
               alert("Failed to create invoice. Please try again.");
             }
           }}
-          style={{
-            padding: "0.8rem 1.5rem",
-            borderRadius: "4px",
-            border: "none",
-            backgroundColor: "#28a745",
-            color: "#fff",
-            fontWeight: "bold",
-            cursor: "pointer",
-          }}
+          style={confirmButtonStyle}
         >
           Confirm Order
         </button>
 
         <button
-          onClick={() => {
-            navigate("/configuration", {
-              state: { modelId, userId },
-            });
-          }}
-          style={{
-            padding: "0.8rem 1.5rem",
-            borderRadius: "4px",
-            border: "none",
-            backgroundColor: "#dc3545",
-            color: "#fff",
-            fontWeight: "bold",
-            cursor: "pointer",
-          }}
+          onClick={() => navigate("/configuration", { state: { modelId, userId } })}
+          style={cancelButtonStyle}
         >
           Cancel
         </button>
@@ -450,5 +306,156 @@ function ConfigurePage() {
     </div>
   );
 }
+
+// === Styles ===
+const containerStyle = {
+  minHeight: "80vh",
+  width: "100vw",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  backgroundImage: `linear-gradient(rgba(255,255,255,0.0), rgba(255,255,255,0.5)), url('/images/w1.jpg')`,
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  backgroundRepeat: "no-repeat",
+  backgroundAttachment: "fixed",
+  fontFamily: "Arial, sans-serif",
+  padding: "3rem",
+  paddingTop: "6rem",
+};
+
+const headingStyle = {
+  fontSize: "2rem",
+  color: "#222",
+  marginBottom: "1rem",
+};
+
+const mainCardStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "1.5rem",
+  backgroundColor: "rgba(255,255,255,0.9)",
+  padding: "2rem",
+  borderRadius: "12px",
+  width: "100%",
+  maxWidth: "1100px",
+  boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+  color: "#333",
+};
+
+const subheadingStyle = {
+  color: "#333",
+  marginBottom: "0.5rem",
+  fontSize: "1.2rem",
+};
+
+const centeredTextBlock = {
+  textAlign: "center",
+};
+
+const typeButtonContainerStyle = {
+  display: "flex",
+  justifyContent: "center",
+  gap: "1rem",
+  marginTop: "1rem",
+};
+
+const typeButtonStyle = {
+  padding: "0.6rem 1.2rem",
+  borderRadius: "6px",
+  border: "none",
+  fontWeight: "bold",
+  fontSize: "1rem",
+  cursor: "pointer",
+};
+
+const horizontalComponentBlockStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  padding: "1rem",
+  backgroundColor: "#f9f9f9",
+  borderRadius: "8px",
+  boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+};
+
+const componentNameStyle = {
+  flex: 1,
+  marginRight: "1rem",
+  fontSize: "1rem",
+};
+
+const alternateBlockStyle = {
+  flex: 2,
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.5rem",
+};
+
+const selectedAltDisplayStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  padding: "0.4rem 0.6rem",
+  backgroundColor: "#e9f5ff",
+  border: "1px solid #ccc",
+  borderRadius: "6px",
+  fontSize: "0.95rem",
+};
+
+const selectStyle = {
+  padding: "0.5rem",
+  borderRadius: "6px",
+  border: "2px solid #ccc",
+  fontSize: "1rem",
+  color: "#333",
+  backgroundColor: "#f0f8ff",
+};
+
+const addButtonStyle = {
+  padding: "0.5rem 1rem",
+  borderRadius: "6px",
+  border: "none",
+  backgroundColor: "#2a5298",
+  color: "#fff",
+  fontWeight: "bold",
+};
+
+const removeButtonStyle = {
+  padding: "0.4rem 0.8rem",
+  borderRadius: "6px",
+  border: "none",
+  backgroundColor: "#b33",
+  color: "#fff",
+  fontWeight: "bold",
+  marginLeft: "1rem",
+};
+
+const footerButtonContainerStyle = {
+  marginTop: "2rem",
+  display: "flex",
+  gap: "1rem",
+  justifyContent: "center",
+};
+
+const confirmButtonStyle = {
+  padding: "0.8rem 1.5rem",
+  borderRadius: "6px",
+  border: "none",
+  backgroundColor: "#28a745",
+  color: "#fff",
+  fontWeight: "bold",
+  cursor: "pointer",
+};
+
+const cancelButtonStyle = {
+  padding: "0.8rem 1.5rem",
+  borderRadius: "6px",
+  border: "none",
+  backgroundColor: "#dc3545",
+  color: "#fff",
+  fontWeight: "bold",
+  cursor: "pointer",
+};
 
 export default ConfigurePage;

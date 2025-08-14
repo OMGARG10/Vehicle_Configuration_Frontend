@@ -5,7 +5,7 @@ function RegistrationForm() {
   const navigate = useNavigate();
 
   const initialForm = {
-    companyName: "", address1: "", address2: "", area: "", city: "", state: "", pin: "",
+    companyName: "", address1: "", address2: "", city: "", state: "", pin: "",
     tel: "", fax: "", holding: "", authorizedPerson: "", designation: "",
     telAuth: "", cell: "", stNo: "", vatNo: "", pan: "",
     email: "", password: ""
@@ -29,7 +29,6 @@ function RegistrationForm() {
       "companyName", "address1", "city", "state", "pin",
       "holding", "authorizedPerson", "designation", "email", "password"
     ];
-
     for (let field of requiredFields) {
       if (!form[field]) {
         alert("Please fill all mandatory (*) fields.");
@@ -48,12 +47,11 @@ function RegistrationForm() {
       fax: form.fax,
       auth_name: form.authorizedPerson,
       designation: form.designation,
-      auth_tel: form.telAuth || "NA",
+      auth_tel: form.telAuth,
       cell: form.cell,
-      company_st_no: form.stNo || "NA",
-      company_vat_no: form.vatNo || "NA",
+      company_st_no: form.stNo,
+      company_vat_no: form.vatNo,
       tax_pan: form.pan,
-      holding_type: form.holding.replace(".", "").replace(" ", "_"),
       email: form.email,
       password: form.password
     };
@@ -61,62 +59,54 @@ function RegistrationForm() {
     try {
       const response = await fetch("http://localhost:8080/users/add", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
 
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error || "Server error");
-      }
+      if (!response.ok) throw new Error("Registration failed.");
 
-      const savedUser = await response.json();
-
-      // ✅ Save to sessionStorage
-      sessionStorage.setItem("user", JSON.stringify(savedUser));
-
-      alert("Registration Successful!");
+      const result = await response.json();
+      alert(`Registration Successful!`);
       handleClear();
-      navigate("/signin"); // Navigate to configure page
+      navigate("/signin");
+
     } catch (error) {
       console.error("Error:", error);
       alert("Registration failed. Please try again.");
     }
   };
 
-  return (
+return (
+  <div
+    style={{
+      minHeight: "100vh",
+      width: "100vw",
+      display: "flex",
+      justifyContent: "center",
+      paddingTop: "7rem",
+      paddingBottom: "3rem",
+      backgroundColor: "#f5f5f5",
+      fontFamily: "Arial, sans-serif",
+    }}
+  >
     <div
       style={{
-        minHeight: "100vh",
-        width: "100vw",
+        width: "90%",
+        maxWidth: "800px",
+        backgroundColor: "#fff",
+        borderRadius: "12px",
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+        padding: "2rem 2.5rem",
         display: "flex",
         flexDirection: "column",
-        alignItems: "center",
-        background: "linear-gradient(to right, #1e3c72, #2a5298)",
-        color: "#fff",
-        fontFamily: "Arial, sans-serif",
-        padding: "2rem 1rem",
-        overflowY: "auto"
+        gap: "1.2rem",
       }}
     >
-      <h1 style={{ margin: "2rem 0 1rem", marginTop: "5rem" }}>Company Registration</h1>
+      <h1 style={{ textAlign: "center", fontSize: "2rem", color: "#222" }}>
+        Company Registration
+      </h1>
 
-      <form
-        onSubmit={handleSubmit}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "1rem",
-          padding: "2rem",
-          borderRadius: "8px",
-          backgroundColor: "rgba(255, 255, 255, 0.1)",
-          width: "100%",
-          maxWidth: "600px",
-          marginTop: "1rem"
-        }}
-      >
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
         {[
           { label: "Name of the company *", name: "companyName" },
           { label: "Address Line 1 *", name: "address1" },
@@ -133,21 +123,20 @@ function RegistrationForm() {
           { label: "Company's ST No", name: "stNo" },
           { label: "Company VAT Reg. No", name: "vatNo" },
           { label: "I Tax PAN (if needed)", name: "pan" },
-          { label: "Email *", name: "email" },
-          { label: "Password *", name: "password" }
         ].map(({ label, name }) => (
           <input
             key={name}
-            type={name === "password" ? "password" : "text"}
+            type="text"
             placeholder={label}
             name={name}
             value={form[name]}
             onChange={handleChange}
             style={{
-              padding: "0.8rem",
-              borderRadius: "4px",
-              border: "none",
-              fontSize: "1rem"
+              padding: "0.75rem",
+              borderRadius: "6px",
+              border: "1px solid #ccc",
+              fontSize: "1rem",
+              outlineColor: "#2a5298",
             }}
           />
         ))}
@@ -158,29 +147,71 @@ function RegistrationForm() {
           onChange={handleChange}
           required
           style={{
-            padding: "0.8rem",
-            borderRadius: "4px",
-            border: "none",
-            fontSize: "1rem"
+            padding: "0.75rem",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+            fontSize: "1rem",
+            outlineColor: "#2a5298",
+            backgroundColor: "#333",
           }}
         >
           <option value="">-- Select Holding Type * --</option>
           <option value="Proprietary">Proprietary</option>
-          <option value="Pvt. Ltd">Pvt. Ltd</option>
+          <option value="Pvt_Ltd">Pvt. Ltd</option>
           <option value="Ltd">Ltd</option>
         </select>
 
-        <div style={{ display: "flex", gap: "1rem", justifyContent: "center", marginTop: "1rem" }}>
+        <input
+          type="email"
+          placeholder="Email *"
+          name="email"
+          value={form.email}
+          onChange={handleChange}
+          required
+          style={{
+            padding: "0.75rem",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+            fontSize: "1rem",
+            outlineColor: "#2a5298",
+          }}
+        />
+
+        <input
+          type="password"
+          placeholder="Password *"
+          name="password"
+          value={form.password}
+          onChange={handleChange}
+          required
+          style={{
+            padding: "0.75rem",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+            fontSize: "1rem",
+            outlineColor: "#2a5298",
+          }}
+        />
+
+        <div
+          style={{
+            display: "flex",
+            gap: "1rem",
+            justifyContent: "center",
+            marginTop: "1rem",
+          }}
+        >
           <button
             type="submit"
             style={{
-              padding: "0.8rem 1.5rem",
-              borderRadius: "4px",
+              padding: "0.75rem 2rem",
+              backgroundColor: "#2a5298",
+              color: "#fff",
               border: "none",
+              borderRadius: "6px",
               fontWeight: "bold",
-              backgroundColor: "#fff",
-              color: "#2a5298",
-              cursor: "pointer"
+              cursor: "pointer",
+              fontSize: "1rem",
             }}
           >
             Submit
@@ -189,13 +220,14 @@ function RegistrationForm() {
             type="button"
             onClick={handleClear}
             style={{
-              padding: "0.8rem 1.5rem",
-              borderRadius: "4px",
-              border: "none",
-              fontWeight: "bold",
+              padding: "0.75rem 2rem",
               backgroundColor: "#ccc",
               color: "#333",
-              cursor: "pointer"
+              border: "none",
+              borderRadius: "6px",
+              fontWeight: "bold",
+              cursor: "pointer",
+              fontSize: "1rem",
             }}
           >
             Clear
@@ -203,7 +235,8 @@ function RegistrationForm() {
         </div>
       </form>
     </div>
-  );
+  </div>
+);
 }
 
 export default RegistrationForm;

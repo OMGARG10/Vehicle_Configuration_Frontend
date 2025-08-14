@@ -37,7 +37,6 @@ function DefaultConfigurationPage() {
 
       const quantityToUse = quantity ?? modelInfo.minQty;
 
-      // Prepare default components list (without alternates)
       const details = modelInfo.defaultComponents.map((comp) => ({
         compId: comp.component.compId,
         isAlternate: "N",
@@ -82,7 +81,6 @@ function DefaultConfigurationPage() {
     }
   };
 
-
   const handleConfigure = () =>
     navigate("/configure", {
       state: {
@@ -95,7 +93,7 @@ function DefaultConfigurationPage() {
 
   return (
     <div style={containerStyle}>
-      <h1 style={{ marginBottom: "1rem" }}>Default Configuration</h1>
+      <h1 style={headingStyle}>Default Configuration</h1>
 
       <div style={cardStyle}>
         {modelInfo && modelInfo.imagePath && (
@@ -108,44 +106,58 @@ function DefaultConfigurationPage() {
 
         {modelInfo ? (
           <>
-            <div><strong>Segment:</strong> {modelInfo.segment?.segName}</div>
-            <div><strong>Manufacturer:</strong> {modelInfo.manufacturer?.mfgName}</div>
-            <div><strong>Model:</strong> {modelInfo.modelName}</div>
-            <div><strong>Quantity:</strong> {quantity ?? modelInfo.minQty}</div>
-            <div><strong>Price per Unit:</strong> ₹{modelInfo.price}</div>
-            <div><strong>Total Price:</strong> ₹{(quantity ?? modelInfo.minQty) * modelInfo.price}</div>
+            <div style={{ marginBottom: "1rem" }}>
+              <div><strong>Segment:</strong> {modelInfo.segment?.segName}</div>
+              <div><strong>Manufacturer:</strong> {modelInfo.manufacturer?.mfgName}</div>
+              <div><strong>Model:</strong> {modelInfo.modelName}</div>
+              <div><strong>Quantity:</strong> {quantity ?? modelInfo.minQty}</div>
+              <div><strong>Price per Unit:</strong> ₹{modelInfo.price}</div>
+              <div><strong>Total Price:</strong> ₹{(quantity ?? modelInfo.minQty) * modelInfo.price}</div>
 
-            <hr style={{ borderColor: "#fff", margin: "1rem 0" }} />
+              <hr style={{ borderColor: "#ccc", margin: "1rem 0" }} />
 
-            <h3>Default Components</h3>
-            {modelInfo.defaultComponents?.length > 0 ? (
-              <table style={{ width: "100%", borderCollapse: "collapse", color: "#fff" }}>
-                <thead>
-                  <tr>
-                    <th style={tableHeaderStyle}>Component Name</th>
-                    <th style={tableHeaderStyle}>Component Type</th>
-                    <th style={tableHeaderStyle}>Is Configurable</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {modelInfo.defaultComponents.map((comp) => (
-                    <tr key={comp.configId}>
-                      <td style={tableCellStyle}>{comp.component?.compName || "Unknown"}</td>
-                      <td style={tableCellStyle}>{comp.compType}</td>
-                      <td style={tableCellStyle}>{comp.isConfigurable}</td>
+              <h3 style={{ marginBottom: "0.5rem" }}>Default Components</h3>
+              {modelInfo.defaultComponents?.length > 0 ? (
+                <table style={tableStyle}>
+                  <thead>
+                    <tr>
+                      <th style={tableHeaderStyle}>Component Name</th>
+                      <th style={tableHeaderStyle}>Component Type</th>
+                      <th style={tableHeaderStyle}>Is Configurable</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p>No default components found for this model.</p>
-            )}
+                  </thead>
+                  <tbody>
+                    {modelInfo.defaultComponents.map((comp) => (
+                      <tr key={comp.configId}>
+                        <td style={tableCellStyle}>{comp.component?.compName || "Unknown"}</td>
+                        <td style={tableCellStyle}>
+                          {{
+                            C: "Core",
+                            S: "Standard",
+                            I: "Interior",
+                            E: "Exterior"
+                          }[comp.compType] || comp.compType}
+                        </td>
+                        <td style={tableCellStyle}>
+                          {{
+                            Y: "Yes",
+                            N: "No"
+                          }[comp.isConfigurable] || comp.isConfigurable}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p>No default components found for this model.</p>
+              )}
+            </div>
           </>
         ) : (
-          <p>Loading or no data found.</p>
+          <p style={{ textAlign: "center", color: "#555" }}>Loading or no data found.</p>
         )}
 
-        <div style={{ display: "flex", justifyContent: "center", gap: "1rem", marginTop: "1.5rem" }}>
+        <div style={buttonContainerStyle}>
           <button onClick={handleConfirm} style={buttonStyle}>Confirm Order</button>
           <button onClick={handleConfigure} style={buttonStyle}>Configure</button>
           <button onClick={handleModify} style={buttonStyle}>Modify Selection</button>
@@ -155,58 +167,89 @@ function DefaultConfigurationPage() {
   );
 }
 
+// --- Styling from DefaultConfigurationPage2 ---
+
 const containerStyle = {
-  minHeight: "100vh",
+  minHeight: "80vh",
   width: "100vw",
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
-  background: "linear-gradient(to right, #1e3c72, #2a5298)",
-  color: "#fff",
+  justifyContent: "flex-start",
+  backgroundImage: `linear-gradient(rgba(255,255,255,0.0), rgba(255,255,255,0.5)), url('/images/w1.jpg')`,
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  backgroundRepeat: "no-repeat",
+  backgroundAttachment: "fixed",
   fontFamily: "Arial, sans-serif",
-  padding: "2rem",
-  overflowY: "auto",
-  position: "relative",
+  padding: "3rem",
+  paddingTop: "6rem",
+};
+
+const headingStyle = {
+  fontSize: "2rem",
+  marginBottom: "1rem",
+  color: "#222",
 };
 
 const cardStyle = {
-  backgroundColor: "rgba(255, 255, 255, 0.1)",
+  backgroundColor: "rgba(255, 255, 255, 0.7)",
+  backdropFilter: "blur(10px)",
   padding: "2rem",
-  borderRadius: "8px",
+  borderRadius: "10px",
+  boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
   width: "100%",
-  maxWidth: "800px",
+  maxWidth: "1000px",
   position: "relative",
+  color: "#333",
 };
 
 const imageStyle = {
-  width: "150px",
-  borderRadius: "8px",
+  width: "250px",
+  height: "auto",
+  borderRadius: "10px",
   position: "absolute",
   top: "2rem",
   right: "2rem",
-  boxShadow: "0 0 10px rgba(0,0,0,0.5)",
+  boxShadow: "0 0 10px rgba(0,0,0,0.2)",
   backgroundColor: "#fff",
 };
 
+const tableStyle = {
+  width: "100%",
+  borderCollapse: "collapse",
+  marginTop: "1rem",
+};
+
 const tableHeaderStyle = {
-  borderBottom: "1px solid #fff",
-  padding: "0.5rem",
+  borderBottom: "2px solid #ccc",
+  padding: "0.75rem",
   textAlign: "left",
+  backgroundColor: "#f0f0f0",
 };
 
 const tableCellStyle = {
-  padding: "0.5rem",
-  borderBottom: "1px solid rgba(255,255,255,0.3)",
+  padding: "0.6rem",
+  borderBottom: "1px solid #ddd",
+};
+
+const buttonContainerStyle = {
+  display: "flex",
+  justifyContent: "center",
+  gap: "1rem",
+  marginTop: "2rem",
 };
 
 const buttonStyle = {
   padding: "0.8rem 1.2rem",
-  borderRadius: "4px",
+  borderRadius: "6px",
   border: "none",
   fontWeight: "bold",
-  backgroundColor: "#fff",
-  color: "#2a5298",
+  backgroundColor: "#2a5298",
+  color: "#fff",
   cursor: "pointer",
+  fontSize: "1rem",
+  transition: "background-color 0.3s",
 };
 
 export default DefaultConfigurationPage;
